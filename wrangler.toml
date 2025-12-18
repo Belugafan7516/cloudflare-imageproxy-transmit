@@ -1,0 +1,6 @@
+name = "master-proxy"
+main = "worker.js"  # Point this to your file location
+compatibility_date = "2024-01-01"
+
+[observability]
+enabled = true
