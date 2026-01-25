@@ -1,10 +1,9 @@
 {
-  "name": "transmitter-proxy",
   "main": "src/index.js",
   "compatibility_date": "2025-12-18",
   "vars": {
     "MASTER_URL": "https://masterproxy.powerstudios.workers.dev"// wrangler.jsonc
-"name": "proxy",
+  "name": "proxy",
   }
 }
 
