@@ -1,7 +1,7 @@
     {
       "$schema": "node_modules/wrangler/config-schema.json",
       "name": "proxy", 
-      "main": "master.js",
+      "main": "worker.js",
       "compatibility_date": "2024-02-04",
       "observability": { "enabled": true }
     }
