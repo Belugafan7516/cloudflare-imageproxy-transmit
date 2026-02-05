@@ -1,6 +1,6 @@
     {
       "$schema": "node_modules/wrangler/config-schema.json",
-      "name": "proxy", 
+      "name": "cloudflare-imageproxy-transmit", 
       "main": "worker.js",
       "compatibility_date": "2024-02-04",
       "observability": { "enabled": true }
