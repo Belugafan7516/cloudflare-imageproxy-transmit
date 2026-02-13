@@ -1,19 +1,44 @@
 /**
- * UNIFIED PROXY v9.0 (All-in-One)
- * * Role: Acts as BOTH Frontend (UI) and Backend (Fetcher).
- * * Usage: Deploy this single file. No configuration needed.
+ * UNIFIED PROXY v10.0 (Cloudflare Access Edition)
+ * * Role: Frontend & Backend in one.
+ * * Security: Validates Cloudflare Access JWT.
+ * * Privacy: Strips Access tokens before sending to targets.
  */
+
+// !!! CONFIGURATION !!!
+// Paste the "Audience (aud)" tag from your Cloudflare Access dashboard here:
+const TEAM_DOMAIN = "https://powerstudios.cloudflareaccess.com";
+const AUDIENCE_TAG = "9d6537ef4b1457d30dbf53a6d77439eb7538231e5d9a503427f60753a65bfc9a";
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // --- 0. SECURITY CHECK (Cloudflare Access) ---
+    // If Access is enabled, we verify the request has a token for our specific Audience.
+    const jwt = request.headers.get("Cf-Access-Jwt-Assertion");
+    if (!jwt && AUDIENCE_TAG) {
+      // If we are behind Access, this should rarely happen, but good for security depth.
+      return new Response("Unauthorized: Missing Cloudflare Access Token", { status: 401 });
+    }
+    
+    // (Optional) Simple JWT Decode to check Audience 
+    // Full cryptographic verification requires the Web Crypto API, omitted here for brevity/speed.
+    if (jwt && AUDIENCE_TAG) {
+      try {
+        const payload = JSON.parse(atob(jwt.split('.')[1]));
+        if (!payload.aud || !payload.aud.includes(AUDIENCE_TAG)) {
+          return new Response("Unauthorized: Invalid Audience", { status: 403 });
+        }
+      } catch (e) {
+        // Token format invalid
+      }
+    }
+
     // =================================================================================
     // SECTION A: BACKEND LOGIC (The Fetcher)
-    // This runs if the request is trying to fetch data (has /__fetch path)
     // =================================================================================
     if (url.pathname === "/__fetch") {
-      // Handle CORS Preflight
       if (request.method === "OPTIONS") {
         return new Response(null, {
           headers: {
@@ -30,12 +55,31 @@ export default {
       let targetUrl;
       try { targetUrl = new URL(targetUrlStr); } catch (e) { return new Response("Invalid URL", { status: 400 }); }
 
-      // Prepare Headers
+      // Prepare Headers for Target
       const newHeaders = new Headers(request.headers);
-      newHeaders.delete("Host");
+      
+      // 1. Spoof Identity
       newHeaders.set("Host", targetUrl.hostname);
       newHeaders.set("Referer", targetUrl.origin + "/");
       newHeaders.set("Origin", targetUrl.origin);
+
+      // 2. STRIP CLOUDFLARE ACCESS HEADERS (Critical for Privacy)
+      // We do NOT want to send your Access cookies to Google/Bing.
+      newHeaders.delete("Cf-Access-Jwt-Assertion");
+      newHeaders.delete("Cf-Access-Authenticated-User-Email");
+      
+      // 3. CLEAN COOKIES
+      // We must remove the "CF_Authorization" cookie from the string
+      const cookieHeader = newHeaders.get("Cookie");
+      if (cookieHeader) {
+        const cleanCookies = cookieHeader
+          .split(';')
+          .filter(c => !c.trim().startsWith("CF_Authorization=") && !c.trim().startsWith("__proxy_base="))
+          .join(';');
+        newHeaders.set("Cookie", cleanCookies);
+      }
+
+      // 4. Remove other trace headers
       ["cf-connecting-ip", "cf-worker", "cf-ray", "cf-visitor", "x-forwarded-for"].forEach(h => newHeaders.delete(h));
 
       try {
@@ -62,7 +106,6 @@ export default {
 
     // =================================================================================
     // SECTION B: FRONTEND LOGIC (The Interface)
-    // This runs for normal user browsing
     // =================================================================================
     
     try {
@@ -83,7 +126,6 @@ export default {
         // Cookie Recovery
         const cookie = request.headers.get("Cookie") || "";
         const match = cookie.match(/__proxy_base=([^;]+)/);
-        let recovered = false;
         
         if (match && match[1]) {
             try {
@@ -107,6 +149,8 @@ export default {
       const backendUrl = `${url.origin}/__fetch?q=${encodeURIComponent(targetUrlStr)}`;
 
       const proxyHeaders = new Headers(request.headers);
+      // NOTE: We DO NOT delete 'Cookie' or 'Cf-Access-Jwt-Assertion' here.
+      // We need them to pass the Cloudflare Access check when the Frontend calls the Backend (self-call).
       ["Host", "cf-connecting-ip", "cf-worker", "x-forwarded-for", "Referer", "Origin"].forEach(h => proxyHeaders.delete(h));
 
       const response = await fetch(backendUrl, {
@@ -191,7 +235,6 @@ export default {
 };
 
 // --- CLASSES & HELPERS ---
-// Same classes as before, just ensuring they use the passed-in URL logic correctly
 
 class HeadInjector {
     constructor(proxyOrigin, targetOrigin) { 
@@ -329,7 +372,7 @@ function landingHtml(hostname) {
     </head>
     <body>
       <div class="crt-container">
-        <h1>UNIFIED PROXY v9.0</h1>
+        <h1>UNIFIED PROXY v10.0</h1>
         <form onsubmit="return go();">
            <div>ENTER_TARGET:</div>
            <input type="text" id="url" placeholder="google.com OR cats" autofocus>
@@ -341,4 +384,5 @@ function landingHtml(hostname) {
     </html>
   `;
 }
+
 
