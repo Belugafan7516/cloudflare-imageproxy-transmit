@@ -1,5 +1,5 @@
 /**
- * UNIFIED PROXY v10.0 (Cloudflare Access Edition)
+ * UNIFIED PROXY v10.1 (Cloudflare Access Edition)
  * * Role: Frontend & Backend in one.
  * * Security: Validates Cloudflare Access JWT.
  * * Privacy: Strips Access tokens before sending to targets.
@@ -8,7 +8,7 @@
 // !!! CONFIGURATION !!!
 // Paste the "Audience (aud)" tag from your Cloudflare Access dashboard here:
 const TEAM_DOMAIN = "https://powerstudios.cloudflareaccess.com";
-const AUDIENCE_TAG = "9d6537ef4b1457d30dbf53a6d77439eb7538231e5d9a503427f60753a65bfc9a";
+const AUDIENCE_TAG = "2e1bd3ddb90843b883e76248039fe9fa05ea3830f156f9011a9d5d6347357f2e";
 
 export default {
   async fetch(request, env, ctx) {
@@ -235,6 +235,7 @@ export default {
 };
 
 // --- CLASSES & HELPERS ---
+// Same classes as before, just ensuring they use the passed-in URL logic correctly
 
 class HeadInjector {
     constructor(proxyOrigin, targetOrigin) { 
@@ -372,7 +373,7 @@ function landingHtml(hostname) {
     </head>
     <body>
       <div class="crt-container">
-        <h1>UNIFIED PROXY v10.0</h1>
+        <h1>UNIFIED PROXY v10.1</h1>
         <form onsubmit="return go();">
            <div>ENTER_TARGET:</div>
            <input type="text" id="url" placeholder="google.com OR cats" autofocus>
